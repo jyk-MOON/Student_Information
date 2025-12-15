@@ -1,0 +1,80 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper
+        PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.example.mapper.UserTMapper">
+
+    <sql id="Base_Column_List">
+        id,name,password,email,birthday,avatar
+    </sql>
+
+    <select id="selectAll" resultType="com.example.entity.UserT">
+        select
+        <include refid="Base_Column_List" />
+        from userT
+        <where>
+            <if test="id != null"> and id= #{id}</if>
+            <if test="name != null"> and name like concat('%', #{name}, '%')</if>
+            <if test="password != null"> and password= #{password}</if>
+            <if test="email != null"> and email= #{email}</if>
+            <if test="birthday != null"> and birthday= #{birthday}</if>
+            <if test="avatar != null"> and avatar= #{avatar}</if>
+        </where>
+        order by id desc
+    </select>
+
+    <select id="selectById" resultType="com.example.entity.UserT">
+        select
+        <include refid="Base_Column_List" />
+        from userT
+        where id = #{id}
+    </select>
+
+    <delete id="deleteById">
+        delete from userT
+        where  id = #{id}
+    </delete>
+
+    <insert id="insert" parameterType="com.example.entity.UserT" useGeneratedKeys="true">
+        insert into userT
+        <trim prefix="(" suffix=")" suffixOverrides=",">
+                <if test="id != null">id,</if>
+                <if test="name != null">name,</if>
+                <if test="password != null">password,</if>
+                <if test="email != null">email,</if>
+                <if test="birthday != null">birthday,</if>
+                <if test="avatar != null">avatar,</if>
+            </trim>
+        <trim prefix="values (" suffix=")" suffixOverrides=",">
+                <if test="id != null">#{id},</if>
+                <if test="name != null">#{name},</if>
+                <if test="password != null">#{password},</if>
+                <if test="email != null">#{email},</if>
+                <if test="birthday != null">#{birthday},</if>
+                <if test="avatar != null">#{avatar},</if>
+        </trim>
+    </insert>
+
+    <update id="updateById" parameterType="com.example.entity.UserT">
+        update userT
+        <set>
+            <if test="name != null">
+                name = #{name},
+            </if>
+            <if test="password != null">
+                password = #{password},
+            </if>
+            <if test="email != null">
+                email = #{email},
+            </if>
+            <if test="birthday != null">
+                birthday = #{birthday},
+            </if>
+            <if test="avatar != null">
+                avatar = #{avatar},
+            </if>
+        </set>
+        where id = #{id} 
+    </update>
+
+</mapper>
