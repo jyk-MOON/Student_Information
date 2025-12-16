@@ -1,0 +1,80 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.example.mapper.BookMapper">
+    <resultMap id="BaseResultMap" type="com.example.entity.Book">
+        <id property="id" column="id"/>
+        <result property="name" column="name"/>
+        <result property="isbn" column="isbn"/>
+        <result property="author" column="author"/>
+        <result property="publisher" column="publisher"/>
+        <result property="publishDate" column="publish_date"/>
+        <result property="categoryId" column="category_id"/>
+        <result property="categoryName" column="category_name"/>
+        <result property="price" column="price"/>
+        <result property="total" column="total"/>
+        <result property="available" column="available"/>
+        <result property="cover" column="cover"/>
+        <result property="location" column="location"/>
+        <result property="description" column="description"/>
+        <result property="createTime" column="create_time"/>
+    </resultMap>
+
+    <insert id="insert" useGeneratedKeys="true" keyProperty="id">
+        INSERT INTO book (name, isbn, author, publisher, publish_date, category_id, price, total, available, cover, location, description)
+        VALUES (#{name}, #{isbn}, #{author}, #{publisher}, #{publishDate}, #{categoryId}, #{price}, #{total}, #{available}, #{cover}, #{location}, #{description})
+    </insert>
+
+    <delete id="deleteById">DELETE FROM book WHERE id = #{id}</delete>
+
+    <delete id="deleteBatch">
+        DELETE FROM book WHERE id IN
+        <foreach collection="list" item="id" open="(" separator="," close=")">#{id}</foreach>
+    </delete>
+
+    <update id="updateById">
+        UPDATE book
+        <set>
+            <if test="name != null and name != ''">name = #{name},</if>
+            <if test="isbn != null and isbn != ''">isbn = #{isbn},</if>
+            <if test="author != null and author != ''">author = #{author},</if>
+            <if test="publisher != null and publisher != ''">publisher = #{publisher},</if>
+            <if test="publishDate != null">publish_date = #{publishDate},</if>
+            <if test="categoryId != null">category_id = #{categoryId},</if>
+            <if test="price != null">price = #{price},</if>
+            <if test="total != null">total = #{total},</if>
+            <if test="available != null">available = #{available},</if>
+            <if test="cover != null and cover != ''">cover = #{cover},</if>
+            <if test="location != null and location != ''">location = #{location},</if>
+            <if test="description != null and description != ''">description = #{description},</if>
+        </set>
+        WHERE id = #{id}
+    </update>
+
+    <update id="updateAvailable">
+        UPDATE book SET available = available + #{num} WHERE id = #{id}
+    </update>
+
+    <select id="selectById" resultMap="BaseResultMap">
+        SELECT b.*, c.name as category_name FROM book b
+                                                     LEFT JOIN category c ON b.category_id = c.id WHERE b.id = #{id}
+    </select>
+
+    <select id="selectAll" resultMap="BaseResultMap">
+        SELECT b.*, c.name as category_name FROM book b
+        LEFT JOIN category c ON b.category_id = c.id
+        <where>
+            <if test="name != null and name != ''">AND b.name LIKE CONCAT('%', #{name}, '%')</if>
+            <if test="categoryId != null">AND b.category_id = #{categoryId}</if>
+            <if test="author != null and author != ''">AND b.author LIKE CONCAT('%', #{author}, '%')</if>
+        </where>
+        ORDER BY b.create_time DESC
+    </select>
+
+    <select id="selectLowStock" resultMap="BaseResultMap">
+        SELECT b.*, c.name as category_name FROM book b
+                                                     LEFT JOIN category c ON b.category_id = c.id
+        WHERE b.available > 0 AND b.available <![CDATA[ <= ]]> #{threshold}
+        ORDER BY b.available ASC
+    </select>
+</mapper>
