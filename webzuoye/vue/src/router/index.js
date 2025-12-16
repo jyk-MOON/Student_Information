@@ -19,6 +19,9 @@ const routes = [
       { path: '403', name: 'NoAuth', meta: { name: '无权限' }, component: () => import('../views/manager/403') },
       { path: 'home', name: 'Home', meta: { name: '系统首页' }, component: () => import('../views/manager/Home') },
       { path: 'user', name: 'User', meta: { name: '用户信息' }, component: () => import('../views/manager/User') },
+      { path: 'book', name: 'Book', meta: { name: '图书管理' }, component: () => import('../views/manager/Book.vue'),},
+      { path: 'borrow-record', name: 'BorrowRecord', meta: { name: '借阅记录' }, component: () => import('../views/manager/BorrowRecord.vue')},
+      { path: 'student-borrow-query', name: 'StudentBorrowQuery', meta: { name: '学生借阅查询' }, component: () => import('../views/manager/StudentBorrowQuery.vue')}
     ]
   },
   {

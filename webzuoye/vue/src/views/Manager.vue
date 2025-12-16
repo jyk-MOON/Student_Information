@@ -31,21 +31,42 @@
     <div class="manager-main">
       <!--  侧边栏  -->
       <div class="manager-main-left">
-        <el-menu :default-openeds="['info', 'user']" router style="border: none" :default-active="$route.path">
+        <el-menu :default-openeds="['info', 'book']" router style="border: none" :default-active="$route.path">
           <el-menu-item :class="{'el-menu-item2':!isChange,'el-menu-item1 ':isChange}" index="/home">
             <i class="el-icon-s-home"></i>
             <span slot="title">首页</span>
           </el-menu-item>
-          <el-submenu index="info">
+
+          <!-- 用户管理菜单组 -->
+          <el-submenu index="user">
             <template slot="title">
-              <i class="el-icon-menu"></i><span>功能管理</span>
+              <i class="el-icon-user"></i><span>用户管理</span>
             </template>
-            <el-menu-item :class="{'el-menu-item2':!isChange,'el-menu-item1 ':isChange}" index="/user">用户基本信息</el-menu-item>
-            <el-menu-item :class="{'el-menu-item2':!isChange,'el-menu-item1 ':isChange}" index="/user">待修改功能</el-menu-item>
+            <el-menu-item :class="{'el-menu-item2':!isChange,'el-menu-item1 ':isChange}" index="/user">
+              用户信息
+            </el-menu-item>
           </el-submenu>
-          <el-submenu index="info">
+
+          <!-- 图书管理菜单组（整合所有图书相关功能） -->
+          <el-submenu index="book">
             <template slot="title">
-              <i class="el-icon-menu"></i><span>背景切换</span>
+              <i class="el-icon-notebook-2"></i><span>图书管理</span>
+            </template>
+            <el-menu-item :class="{'el-menu-item2':!isChange,'el-menu-item1 ':isChange}" index="/book">
+              <i class="el-icon-reading"></i>图书列表
+            </el-menu-item>
+            <el-menu-item :class="{'el-menu-item2':!isChange,'el-menu-item1 ':isChange}" index="/borrow-record">
+              <i class="el-icon-tickets"></i>借阅记录
+            </el-menu-item>
+            <el-menu-item :class="{'el-menu-item2':!isChange,'el-menu-item1 ':isChange}" index="/student-borrow-query">
+              <i class="el-icon-search"></i>学生借阅查询
+            </el-menu-item>
+          </el-submenu>
+
+          <!-- 背景切换菜单组 -->
+          <el-submenu index="background">
+            <template slot="title">
+              <i class="el-icon-picture-outline"></i><span>背景切换</span>
             </template>
             <el-menu-item :class="{'el-menu-item2':!isChange,'el-menu-item1 ':isChange}" @click="backgroundChange(0)">背景1</el-menu-item>
             <el-menu-item :class="{'el-menu-item2':!isChange,'el-menu-item1 ':isChange}" @click="backgroundChange(1)">背景2</el-menu-item>
