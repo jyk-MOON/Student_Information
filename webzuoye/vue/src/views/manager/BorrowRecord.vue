@@ -33,30 +33,9 @@
         批量归还({{ selectedIds.length }})
       </el-button>
       <el-button type="warning" plain @click="exportData">导出数据</el-button>
-      <el-button type="info" plain @click="showStatistics">借阅统计</el-button>
     </div>
 
-    <!-- 3. 统计信息卡片 -->
-    <div class="stat-cards" style="margin-bottom: 20px; display: flex; gap: 15px;">
-      <el-card shadow="hover" style="flex: 1; text-align: center;">
-        <div style="color: #909399; font-size: 14px;">今日借阅</div>
-        <div style="font-size: 24px; font-weight: bold; color: #409EFF; margin-top: 10px;">{{ stats.todayBorrow }}</div>
-      </el-card>
-      <el-card shadow="hover" style="flex: 1; text-align: center;">
-        <div style="color: #909399; font-size: 14px;">今日归还</div>
-        <div style="font-size: 24px; font-weight: bold; color: #67C23A; margin-top: 10px;">{{ stats.todayReturn }}</div>
-      </el-card>
-      <el-card shadow="hover" style="flex: 1; text-align: center;">
-        <div style="color: #909399; font-size: 14px;">借阅中</div>
-        <div style="font-size: 24px; font-weight: bold; color: #E6A23C; margin-top: 10px;">{{ stats.borrowing }}</div>
-      </el-card>
-      <el-card shadow="hover" style="flex: 1; text-align: center;">
-        <div style="color: #909399; font-size: 14px;">已超期</div>
-        <div style="font-size: 24px; font-weight: bold; color: #F56C6C; margin-top: 10px;">{{ stats.overdue }}</div>
-      </el-card>
-    </div>
-
-    <!-- 4. 借阅记录表格 -->
+    <!-- 3. 借阅记录表格 -->
     <div class="table">
       <el-table
           :data="tableData"
@@ -118,10 +97,10 @@
         <el-table-column label="状态" width="100" align="center">
           <template v-slot="scope">
             <el-tag
-                :type="getStatusTagType(scope.row.status)"
+                :type="getStatusTagType(scope.row)"
                 size="small"
                 effect="dark">
-              {{ getStatusText(scope.row.status) }}
+              {{ getStatusText(scope.row) }}
             </el-tag>
           </template>
         </el-table-column>
@@ -140,23 +119,15 @@
         <el-table-column label="操作" width="150" align="center" fixed="right">
           <template v-slot="scope">
             <el-button
-                v-if="scope.row.status === 'BORROWED' || scope.row.status === 'OVERDUE'"
+                v-if="!scope.row.returnTime"
                 type="success"
                 size="mini"
                 plain
-                @click="handleReturn(scope.row)">
+                @click="handleReturn(scope.row)"
+                :loading="scope.row.returnLoading">
               办理归还
             </el-button>
             <span v-else style="color: #909399;">已归还</span>
-
-            <el-button
-                type="info"
-                size="mini"
-                plain
-                style="margin-top: 5px;"
-                @click="viewDetails(scope.row)">
-              详情
-            </el-button>
           </template>
         </el-table-column>
       </el-table>
@@ -176,7 +147,7 @@
       </div>
     </div>
 
-    <!-- 5. 借阅详情对话框 -->
+    <!-- 4. 借阅详情对话框 -->
     <el-dialog
         title="借阅记录详情"
         :visible.sync="detailDialogVisible"
@@ -187,8 +158,8 @@
         <el-descriptions :column="2" border>
           <el-descriptions-item label="借阅编号">{{ currentRecord.id }}</el-descriptions-item>
           <el-descriptions-item label="借阅状态">
-            <el-tag :type="getStatusTagType(currentRecord.status)" size="small">
-              {{ getStatusText(currentRecord.status) }}
+            <el-tag :type="getStatusTagType(currentRecord)" size="small">
+              {{ getStatusText(currentRecord) }}
             </el-tag>
           </el-descriptions-item>
 
@@ -196,7 +167,6 @@
           <el-descriptions-item label="图书作者">{{ currentRecord.bookAuthor }}</el-descriptions-item>
 
           <el-descriptions-item label="ISBN">{{ currentRecord.bookIsbn }}</el-descriptions-item>
-          <el-descriptions-item label="馆藏位置">{{ currentRecord.bookLocation || '--' }}</el-descriptions-item>
 
           <el-descriptions-item label="借阅学生">{{ currentRecord.userName }}</el-descriptions-item>
           <el-descriptions-item label="学生ID">{{ currentRecord.userId }}</el-descriptions-item>
@@ -217,24 +187,12 @@
           <el-descriptions-item label="操作管理员">{{ currentRecord.adminName || '--' }}</el-descriptions-item>
           <el-descriptions-item label="管理员ID">{{ currentRecord.adminId }}</el-descriptions-item>
         </el-descriptions>
-
-        <!-- 备注信息 -->
-        <div style="margin-top: 20px;">
-          <h4 style="color: #606266; margin-bottom: 10px;">备注信息</h4>
-          <el-input
-              type="textarea"
-              :rows="3"
-              placeholder="暂无备注信息"
-              v-model="currentRecord.remark"
-              disabled>
-          </el-input>
-        </div>
       </div>
 
       <div slot="footer" class="dialog-footer">
         <el-button @click="detailDialogVisible = false">关闭</el-button>
         <el-button
-            v-if="currentRecord && (currentRecord.status === 'BORROWED' || currentRecord.status === 'OVERDUE')"
+            v-if="currentRecord && !currentRecord.returnTime"
             type="primary"
             @click="handleReturn(currentRecord)">
           办理归还
@@ -245,8 +203,6 @@
 </template>
 
 <script>
-import bookApi from '@/api/book'
-
 export default {
   name: "BorrowRecord",
   data() {
@@ -267,14 +223,6 @@ export default {
       // 选中项
       selectedIds: [],
 
-      // 统计信息
-      stats: {
-        todayBorrow: 0,
-        todayReturn: 0,
-        borrowing: 0,
-        overdue: 0
-      },
-
       // 对话框
       detailDialogVisible: false,
       currentRecord: null,
@@ -284,9 +232,8 @@ export default {
     }
   },
   created() {
-    // 页面加载时，获取借阅记录列表和统计信息
+    // 页面加载时，获取借阅记录列表
     this.load(1)
-    this.loadStats()
   },
   methods: {
     // 加载借阅记录列表
@@ -294,6 +241,7 @@ export default {
       if (pageNum) this.pageNum = pageNum
       this.loading = true
 
+      // 构建查询参数
       const params = {
         pageNum: this.pageNum,
         pageSize: this.pageSize
@@ -303,6 +251,8 @@ export default {
       if (this.searchBookName) params.bookName = this.searchBookName
       if (this.searchStudent) params.studentInfo = this.searchStudent
       if (this.searchStatus) params.status = this.searchStatus
+
+      // 添加日期范围参数
       if (this.searchDateRange && this.searchDateRange.length === 2) {
         params.startDate = this.searchDateRange[0]
         params.endDate = this.searchDateRange[1]
@@ -310,29 +260,24 @@ export default {
 
       try {
         const res = await this.$request.get('/book/borrow/selectPage', { params })
+        console.log('借阅记录列表响应:', res)
+
         if (res.code === '200') {
           this.tableData = res.data?.list || []
           this.total = res.data?.total || 0
+
+          // 为每条记录添加加载状态
+          this.tableData.forEach(record => {
+            record.returnLoading = false
+          })
         } else {
           this.$message.error(res.msg || '获取借阅记录失败')
         }
       } catch (error) {
         console.error('加载借阅记录出错:', error)
-        this.$message.error('请求失败')
+        this.$message.error('请求失败，请检查网络连接')
       } finally {
         this.loading = false
-      }
-    },
-
-    // 加载统计信息（这里需要后端提供对应接口，暂时模拟数据）
-    loadStats() {
-      // 实际开发中应调用专门的统计接口
-      // 这里模拟统计数据
-      this.stats = {
-        todayBorrow: 12,
-        todayReturn: 8,
-        borrowing: 156,
-        overdue: 7
       }
     },
 
@@ -347,8 +292,9 @@ export default {
 
     // 表格多选
     handleSelectionChange(rows) {
+      // 只选择未归还的记录
       this.selectedIds = rows
-          .filter(row => row.status === 'BORROWED' || row.status === 'OVERDUE')
+          .filter(row => !row.returnTime)
           .map(row => row.id)
     },
 
@@ -365,8 +311,73 @@ export default {
 
     // 办理归还（单条）
     async handleReturn(record) {
+      if (!record.id) {
+        this.$message.warning('无效的记录ID')
+        return
+      }
+
       try {
+        // 设置加载状态
+        record.returnLoading = true
+
         await this.$confirm(`确认归还图书《${record.bookName}》吗？`, '办理归还', {
+          confirmButtonText: '确认归还',
+          cancelButtonText: '取消',
+          type: 'warning'
+        })
+
+        // 获取当前管理员ID
+        const adminId = this.currentAdmin.id
+        if (!adminId) {
+          this.$message.error('无法获取管理员信息，请重新登录')
+          record.returnLoading = false
+          return
+        }
+
+        console.log('归还参数:', {
+          borrowId: record.id,
+          adminId: adminId
+        })
+
+        // 调用归还接口
+        const res = await this.$request.post(`/book/return/${record.id}`, null, {
+          params: { adminId }
+        })
+
+        console.log('归还响应:', res)
+
+        if (res.code === '200') {
+          this.$message.success('归还成功')
+          // 刷新列表
+          this.load(1)
+          // 关闭详情对话框
+          if (this.detailDialogVisible) {
+            this.detailDialogVisible = false
+          }
+        } else {
+          this.$message.error(res.msg || '归还失败')
+          record.returnLoading = false
+        }
+      } catch (error) {
+        console.log('取消操作或操作失败:', error)
+        record.returnLoading = false
+
+        // 如果是用户取消操作，不做处理
+        if (error !== 'cancel' && error.message !== 'cancel') {
+          this.$message.error('操作失败: ' + (error.message || '未知错误'))
+        }
+      }
+    },
+
+    // 批量归还
+    async handleBatchReturn() {
+      if (this.selectedIds.length === 0) {
+        this.$message.warning('请选择要归还的记录')
+        return
+      }
+
+      try {
+        await this.$confirm(`确认批量归还 ${this.selectedIds.length} 条借阅记录吗？`, '批量归还', {
           confirmButtonText: '确认归还',
           cancelButtonText: '取消',
           type: 'warning'
@@ -374,68 +385,63 @@ export default {
 
         const adminId = this.currentAdmin.id
         if (!adminId) {
-          this.$message.error('无法获取管理员信息')
-          return
-        }
-
-        const res = await this.$request.post(`/book/return/${record.id}`, null, {
-          params: { adminId }
-        })
-
-        if (res.code === '200') {
-          this.$message.success('归还成功')
-          this.load(1)
-        } else {
-          this.$message.error(res.msg || '归还失败')
-        }
-      } catch (error) {
-        console.log('取消操作')
-      }
-    },
-
-    // 批量归还
-    handleBatchReturn() {
-      if (this.selectedIds.length === 0) {
-        this.$message.warning('请选择要归还的记录')
-        return
-      }
-
-      const count = this.selectedIds.length
-      this.$confirm(`确认批量归还 ${count} 条借阅记录吗？`, '批量归还', {
-        confirmButtonText: '确认归还',
-        cancelButtonText: '取消',
-        type: 'warning'
-      }).then(() => {
-        const adminId = this.currentAdmin.id
-        if (!adminId) {
           this.$message.error('无法获取管理员信息，请重新登录')
           return
         }
 
-        // 由于后端可能没有批量归还接口，这里采用循环处理
         let successCount = 0
-        const processNext = (index) => {
-          if (index >= this.selectedIds.length) {
-            this.$message.success(`成功归还 ${successCount} 条记录`)
-            this.load(1)
-            this.loadStats()
-            this.selectedIds = []
-            return
-          }
+        let failCount = 0
 
-          const borrowId = this.selectedIds[index]
-          bookApi.returnBook(borrowId, adminId).then(res => {
-            if (res.code === '200') successCount++
-            processNext(index + 1)
-          }).catch(() => {
-            processNext(index + 1)
-          })
+        // 为选中的记录设置加载状态
+        const selectedRecords = this.tableData.filter(record => this.selectedIds.includes(record.id))
+        selectedRecords.forEach(record => {
+          record.returnLoading = true
+        })
+
+        // 逐个处理归还
+        for (const borrowId of this.selectedIds) {
+          try {
+            const res = await this.$request.post(`/book/return/${borrowId}`, null, {
+              params: { adminId }
+            })
+
+            if (res.code === '200') {
+              successCount++
+            } else {
+              failCount++
+              console.error(`归还记录 ${borrowId} 失败:`, res.msg)
+            }
+          } catch (error) {
+            failCount++
+            console.error(`归还记录 ${borrowId} 异常:`, error)
+          }
         }
 
-        processNext(0)
-      }).catch(() => {
-        // 用户取消操作
-      })
+        // 清除加载状态
+        selectedRecords.forEach(record => {
+          record.returnLoading = false
+        })
+
+        // 显示处理结果
+        let message = ''
+        if (successCount > 0) {
+          message += `成功归还 ${successCount} 条记录`
+        }
+        if (failCount > 0) {
+          message += `，失败 ${failCount} 条记录`
+        }
+
+        if (message) {
+          this.$message.success(message)
+        }
+
+        // 刷新数据
+        this.load(1)
+        this.selectedIds = []
+
+      } catch (error) {
+        console.log('取消批量归还操作')
+      }
     },
 
     // 查看详情
@@ -447,23 +453,6 @@ export default {
     // 导出数据
     exportData() {
       this.$message.info('导出功能开发中...')
-      // 实际开发中可以调用后端导出接口或前端导出
-    },
-
-    // 显示统计信息
-    showStatistics() {
-      this.$alert(
-          `借阅统计信息：\n\n` +
-          `今日借阅：${this.stats.todayBorrow} 本\n` +
-          `今日归还：${this.stats.todayReturn} 本\n` +
-          `当前借阅中：${this.stats.borrowing} 本\n` +
-          `已超期：${this.stats.overdue} 本`,
-          '借阅统计',
-          {
-            confirmButtonText: '知道了',
-            callback: () => {}
-          }
-      )
     },
 
     // 工具方法：格式化日期
@@ -484,26 +473,28 @@ export default {
     },
 
     // 工具方法：获取状态标签类型
-    getStatusTagType(status) {
-      switch (status) {
-        case 'BORROWED': return 'warning'
-        case 'RETURNED': return 'success'
-        case 'OVERDUE': return 'danger'
-        default: return 'info'
+    getStatusTagType(record) {
+      if (record.returnTime) {
+        return 'success'  // 已归还
+      } else if (this.isOverdue(record)) {
+        return 'danger'   // 已超期
+      } else {
+        return 'warning'  // 借阅中
       }
     },
 
     // 工具方法：获取状态文本
-    getStatusText(status) {
-      switch (status) {
-        case 'BORROWED': return '借阅中'
-        case 'RETURNED': return '已归还'
-        case 'OVERDUE': return '已超期'
-        default: return '未知状态'
+    getStatusText(record) {
+      if (record.returnTime) {
+        return '已归还'
+      } else if (this.isOverdue(record)) {
+        return '已超期'
+      } else {
+        return '借阅中'
       }
     },
 
-    // 判断是否超期（示例逻辑）
+    // 判断是否超期
     isOverdue(record) {
       if (!record.dueTime || record.returnTime) return false
 
@@ -528,16 +519,6 @@ export default {
 <style scoped>
 .search, .operation {
   margin-bottom: 15px;
-}
-
-.stat-cards .el-card:hover {
-  transform: translateY(-2px);
-  transition: transform 0.3s;
-}
-
-/* 状态标签样式 */
-.el-tag {
-  margin: 2px;
 }
 
 /* 表格行悬停效果 */
