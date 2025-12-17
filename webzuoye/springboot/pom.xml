@@ -64,6 +64,27 @@
             <version>4.3.0</version>
         </dependency>
 
+        <!-- ============ 以下是新增的依赖 ============ -->
+        <!-- Lombok - 解决@Data注解问题 -->
+        <dependency>
+            <groupId>org.projectlombok</groupId>
+            <artifactId>lombok</artifactId>
+            <version>1.18.30</version>
+            <scope>provided</scope>
+        </dependency>
+
+        <!-- Spring AOP - 解决@Transactional注解问题 -->
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-aop</artifactId>
+        </dependency>
+
+        <!-- Validation - 可选但推荐 -->
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-validation</artifactId>
+        </dependency>
+        <!-- ============ 新增依赖结束 ============ -->
     </dependencies>
 
     <build>
